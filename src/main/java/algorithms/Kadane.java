@@ -2,7 +2,7 @@ package algorithms;
 
 import metrics.PerformanceTracker;
 
-public class Kadane {
+public class  Kadane {
     public static Result kadane(int[] a, PerformanceTracker t) {
         if (a == null || a.length == 0) {
             throw new IllegalArgumentException("Array must not be null or empty");

@@ -1,8 +1,8 @@
 package cli;
 
 import algorithms.Kadane;
-import algorithms.Result;
 import algorithms.MajorityVote;
+import algorithms.Result;
 import metrics.PerformanceTracker;
 
 import java.nio.file.*;
@@ -10,57 +10,60 @@ import java.util.*;
 
 public class BenchmarkRunner {
     public static void main(String[] args) throws Exception {
-        Map<String, String> params = parseArgs(args);
+        Map<String, String> p = parseArgs(args);
 
-        String algo = params.getOrDefault("algo", "kadane"); // по умолчанию kadane
-        int n = Integer.parseInt(params.getOrDefault("n", "1000"));
-        String dist = params.getOrDefault("dist", "random");
-        int trials = Integer.parseInt(params.getOrDefault("trials", "3"));
-        boolean print = Boolean.parseBoolean(params.getOrDefault("print", "false"));
+        String algo  = p.getOrDefault("algo", "kadane");    // kadane | majority
+        int n        = Integer.parseInt(p.getOrDefault("n", "1000"));
+        String dist  = p.getOrDefault("dist", "random");    // random | equal
+        int trials   = Integer.parseInt(p.getOrDefault("trials", "3"));
+        boolean print= Boolean.parseBoolean(p.getOrDefault("print", "false"));
 
-        // отдельные csv для каждого алгоритма
-        String csvPath = "docs/performance-plots/" + algo + ".csv";
-        Path out = Paths.get(csvPath);
-        Files.createDirectories(out.getParent());
-        boolean newFile = !Files.exists(out);
-        if (newFile) Files.writeString(out, new PerformanceTracker().toCsvHeader() + "\n");
+        Path outDir = Paths.get("docs", "performance-plots");
+        Files.createDirectories(outDir);
+        Path csv = outDir.resolve(algo + "-n" + n + "-" + dist + ".csv");
 
-        Random rnd = new Random(42);
+        boolean writeHeader = !Files.exists(csv);
+        try (var writer = Files.newBufferedWriter(csv,
+                java.nio.charset.StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND)) {
 
-        for (int trial = 1; trial <= trials; trial++) {
-            int[] a = generateArray(n, dist, rnd);
             PerformanceTracker t = new PerformanceTracker();
+            if (writeHeader) writer.write(PerformanceTracker.csvHeader() + System.lineSeparator());
 
-            if (algo.equals("kadane")) {
-                Result r = Kadane.kadane(a, t);
-                Files.writeString(out, t.toCsvRow("kadane", n, dist, trial) + "\n",
-                        StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-                if (print) System.out.println("Trial " + trial + ": " + r);
+            Random rnd = new Random(42);
+            for (int trial = 1; trial <= trials; trial++) {
+                int[] a = generateArray(n, dist, rnd);
+                t.reset();
 
-            } else if (algo.equals("majority")) {
-                Integer maj = MajorityVote.findMajority(a, t);
-                Files.writeString(out, t.toCsvRow("majority", n, dist, trial) + "\n",
-                        StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-                if (print) System.out.println("Trial " + trial + ": Majority=" + maj);
-            } else {
-                System.out.println("Unknown algo: " + algo);
-                return;
+                if (algo.equalsIgnoreCase("kadane")) {
+                    Result r = Kadane.kadane(a, t);
+                    if (print) System.out.println("Kadane: sum=" + r.maxSum + " [" + r.left + ".." + r.right + "]");
+                } else if (algo.equalsIgnoreCase("majority")) {
+                    Integer x = MajorityVote.findMajority(a, t);
+                    if (print) System.out.println("Majority: " + x);
+                } else {
+                    throw new IllegalArgumentException("Unknown algo: " + algo);
+                }
+
+                writer.write(t.toCsvRow(algo, n, dist, trial) + System.lineSeparator());
             }
         }
+        System.out.println("CSV written to: " + csv.toAbsolutePath());
     }
 
     private static int[] generateArray(int n, String dist, Random rnd) {
         int[] a = new int[n];
-        switch (dist) {
-            case "all-negative":
-                for (int i = 0; i < n; i++) a[i] = -rnd.nextInt(100) - 1;
-                break;
-            case "all-equal":
-                int val = rnd.nextInt(21) - 10;
-                Arrays.fill(a, val);
-                break;
-            default: // random
-                for (int i = 0; i < n; i++) a[i] = rnd.nextInt(21) - 10;
+        switch (dist.toLowerCase()) {
+            case "equal" -> {
+                // половина одного значения, половина другого (есть большинство)
+                int majority = 1, other = 0;
+                for (int i = 0; i < n; i++) a[i] = (i < (n/2 + 1)) ? majority : other;
+            }
+            case "random" -> {
+                for (int i = 0; i < n; i++) a[i] = rnd.nextInt(21) - 10; // -10..10
+            }
+            default -> throw new IllegalArgumentException("Unknown dist: " + dist);
         }
         return a;
     }

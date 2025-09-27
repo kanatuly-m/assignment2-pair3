@@ -17,35 +17,25 @@ public class MajorityVote {
         for (int x : a) {
             t.incArrayAccesses();
             if (count == 0) {
-                candidate = x;
-                count = 1;
-                t.incAssignments();
+                candidate = x;  t.incAssignments();
+                count = 1;      t.incAssignments();
             } else if (x == candidate) {
-                count++;
-                t.incAssignments();
+                count++;        t.incAssignments();
             } else {
-                count--;
-                t.incAssignments();
+                count--;        t.incAssignments();
             }
-            t.incComparisons();
         }
 
-        // шаг 2: проверка кандидата
+        // шаг 2: проверка, что кандидат действительно > n/2
         int freq = 0;
         for (int x : a) {
             t.incArrayAccesses();
             if (x == candidate) {
-                freq++;
-                t.incAssignments();
+                freq++;         t.incAssignments();
             }
         }
 
         t.stopTimer();
-
-        if (freq > a.length / 2) {
-            return candidate;
-        } else {
-            return null; // нет большинства
-        }
+        return (freq > a.length / 2) ? candidate : null;
     }
 }

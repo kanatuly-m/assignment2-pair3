@@ -14,7 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <!-- Правильное место для BOM -->
+
     <dependencyManagement>
         <dependencies>
             <dependency>
